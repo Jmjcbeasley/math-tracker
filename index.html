@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Summer Math Tracker</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f3f0ff;
+      color: #1a202c;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      color: white;
+      padding: 24px 32px 20px;
+    }
+    header h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 3px; }
+    header p  { opacity: 0.85; font-size: 0.9rem; }
+
+    /* ── Lesson tables section ── */
+    .lesson-tables {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      background: white;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    .lesson-table-panel {
+      padding: 18px 24px 20px;
+    }
+    .lesson-table-panel:first-child {
+      border-right: 1px solid #e2e8f0;
+    }
+
+    .lesson-table-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .lesson-table-title.completed { color: #6d28d9; }
+    .lesson-table-title.remaining { color: #475569; }
+
+    .lesson-count-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      border-radius: 99px;
+      padding: 1px 8px;
+    }
+    .completed .lesson-count-badge { background: #ede9fe; color: #6d28d9; }
+    .remaining .lesson-count-badge { background: #f1f5f9; color: #475569; }
+
+    .lesson-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      min-height: 32px;
+    }
+    .chip {
+      font-size: 0.8rem;
+      font-weight: 600;
+      border-radius: 7px;
+      padding: 4px 10px;
+      white-space: nowrap;
+    }
+    .chip.done {
+      background: #ede9fe;
+      color: #5b21b6;
+      border: 1.5px solid #c4b5fd;
+    }
+    .chip.todo {
+      background: #f8fafc;
+      color: #475569;
+      border: 1.5px solid #cbd5e1;
+    }
+    .chip-empty {
+      font-size: 0.78rem;
+      color: #cbd5e1;
+      font-style: italic;
+    }
+
+    /* ── Stats bar ── */
+    .stats {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 14px 24px;
+      background: white;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .stat-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #f7f8fc;
+      border: 1px solid #e2e8f0;
+      border-radius: 99px;
+      padding: 6px 14px;
+      font-size: 0.8rem;
+      color: #475569;
+    }
+    .stat-pill strong { color: #1e293b; font-weight: 700; }
+
+    /* ── Pace control ── */
+    .pace-control {
+      padding: 11px 24px;
+      background: #fffbeb;
+      border-bottom: 1px solid #fde68a;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      font-size: 0.84rem;
+      color: #78350f;
+    }
+    .pace-control label { font-weight: 600; }
+    .pace-control input[type=range] { accent-color: #d97706; width: 120px; }
+    .pace-val { font-weight: 700; color: #b45309; min-width: 34px; }
+    .pace-note { color: #92400e; font-size: 0.76rem; }
+
+    /* ── Progress bar ── */
+    .progress-wrap {
+      padding: 10px 24px 14px;
+      background: white;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: #475569;
+      margin-bottom: 6px;
+    }
+    .progress-bar-bg {
+      background: #e2e8f0;
+      border-radius: 99px;
+      height: 10px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, #4f46e5, #7c3aed);
+      transition: width .4s ease;
+    }
+
+    /* ── Calendar ── */
+    .calendar-wrap { padding: 20px 24px 40px; }
+    .month-label {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #334155;
+      margin: 16px 0 8px;
+    }
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+    }
+    .dow-header {
+      text-align: center;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #94a3b8;
+      padding: 3px 0;
+    }
+
+    /* ── Day cell ── */
+    .day-cell {
+      background: white;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 8px 8px 9px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .day-cell.empty { background: transparent; border-color: transparent; }
+    .day-cell.today { border-color: #4f46e5; box-shadow: 0 0 0 2px #c7d2fe; }
+    .day-cell.complete { background: #f0fdf4; border-color: #86efac; }
+    .day-cell.overdue  { background: #fff1f2; border-color: #fca5a5; }
+    .day-cell.past-complete { background: #f0fdf4; border-color: #86efac; opacity: .75; }
+
+    .day-num {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #334155;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1px;
+    }
+    .today-badge {
+      font-size: 0.58rem;
+      background: #4f46e5;
+      color: white;
+      border-radius: 99px;
+      padding: 1px 6px;
+      font-weight: 700;
+    }
+
+    /* ── Lesson row ── */
+    .lesson-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .lesson-row input[type=checkbox] {
+      accent-color: #7c3aed;
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .lesson-row .row-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #7c3aed;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .lesson-num-field {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #1e293b;
+      border: 1.5px solid #ddd6fe;
+      border-radius: 5px;
+      padding: 2px 5px;
+      width: 100%;
+      background: #faf5ff;
+      outline: none;
+      transition: border-color .15s, background .15s;
+    }
+    .lesson-num-field:focus { border-color: #7c3aed; background: white; }
+    .lesson-num-field::placeholder { color: #c4b5fd; font-weight: 400; }
+    .lesson-num-field.is-done {
+      text-decoration: line-through;
+      color: #7c3aed;
+      background: #ede9fe;
+      border-color: #a78bfa;
+    }
+
+    /* ── Completion banner ── */
+    .done-banner {
+      display: none;
+      text-align: center;
+      padding: 16px;
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      color: white;
+      border-radius: 12px;
+      margin: 0 24px 16px;
+    }
+    .done-banner h2 { font-size: 1.3rem; margin-bottom: 4px; }
+    .done-banner p  { opacity: .85; font-size: 0.88rem; }
+
+    /* ── Footer ── */
+    .footer-bar { padding: 10px 24px 28px; text-align: right; }
+    .btn-reset {
+      background: white;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 7px 16px;
+      font-size: 0.8rem;
+      color: #ef4444;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background .15s;
+    }
+    .btn-reset:hover { background: #fff1f2; border-color: #fca5a5; }
+
+    @media (max-width: 680px) {
+      header, .lesson-tables, .stats, .pace-control, .progress-wrap, .calendar-wrap, .footer-bar { padding-left: 12px; padding-right: 12px; }
+      .lesson-tables { grid-template-columns: 1fr; }
+      .lesson-table-panel:first-child { border-right: none; border-bottom: 1px solid #e2e8f0; }
+      .calendar-grid { gap: 3px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>📚 Summer Math Tracker</h1>
+  <p>June 20 → July 20 &nbsp;·&nbsp; Check a box to mark a lesson complete</p>
+</header>
+
+<!-- Lesson tables -->
+<div class="lesson-tables">
+  <div class="lesson-table-panel">
+    <div class="lesson-table-title completed">
+      ✅ Completed Lessons
+      <span class="lesson-count-badge" id="completed-count">0</span>
+    </div>
+    <div class="lesson-chips" id="completed-chips">
+      <span class="chip-empty">No lessons checked yet</span>
+    </div>
+  </div>
+  <div class="lesson-table-panel">
+    <div class="lesson-table-title remaining">
+      📋 Remaining Lessons
+      <span class="lesson-count-badge" id="remaining-count">0</span>
+    </div>
+    <div class="lesson-chips" id="remaining-chips">
+      <span class="chip-empty">No lessons entered yet</span>
+    </div>
+  </div>
+</div>
+
+<!-- Stats pills -->
+<div class="stats">
+  <div class="stat-pill">⏱ Program estimate: <strong>73h 30m</strong></div>
+  <div class="stat-pill">Her pace: <strong id="stat-actual-hours">110h 15m</strong> <span id="stat-pace-note" style="color:#b45309;font-size:0.75rem;margin-left:2px;">at 1.5×</span></div>
+  <div class="stat-pill">Blocks needed: <strong id="stat-total-blocks">56</strong></div>
+  <div class="stat-pill">Blocks done: <strong id="stat-done-blocks">0</strong></div>
+  <div class="stat-pill">Days left: <strong id="stat-days-left">31</strong></div>
+</div>
+
+<!-- Pace control -->
+<div class="pace-control">
+  <label>⏱ Pace multiplier:</label>
+  <input type="range" id="pace-slider" min="1.0" max="2.5" step="0.1" value="1.5" />
+  <span class="pace-val" id="pace-display">1.5×</span>
+  <span class="pace-note">— e.g., 90 min when program estimates 60 min</span>
+</div>
+
+<!-- Progress bar -->
+<div class="progress-wrap">
+  <div class="progress-header">
+    <span>Block progress (2-hr sessions)</span>
+    <span id="progress-pct">0%</span>
+  </div>
+  <div class="progress-bar-bg">
+    <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+  </div>
+</div>
+
+<!-- Completion banner -->
+<div class="done-banner" id="done-banner">
+  <h2>🎉 Goal Complete!</h2>
+  <p>Enough blocks checked to finish before July 20. Amazing work!</p>
+</div>
+
+<!-- Calendar -->
+<div class="calendar-wrap">
+  <div id="calendar-container"></div>
+</div>
+
+<div class="footer-bar">
+  <button class="btn-reset" onclick="resetAll()">Reset everything</button>
+</div>
+
+<script>
+// ── Constants ──────────────────────────────────────────────────────────
+const ESTIMATED_HOURS = 73.5;
+const START_DATE = new Date(2026, 5, 20);
+const END_DATE   = new Date(2026, 6, 20);
+const STORAGE_KEY = 'mathtracker_v3';
+const ROWS_PER_DAY = 2;
+
+// ── Dates ──────────────────────────────────────────────────────────────
+function buildDateList() {
+  const dates = [];
+  let d = new Date(START_DATE);
+  while (d <= END_DATE) { dates.push(new Date(d)); d.setDate(d.getDate() + 1); }
+  return dates;
+}
+const ALL_DATES = buildDateList();
+
+// ── State ──────────────────────────────────────────────────────────────
+let paceMultiplier = 1.5;
+let checkedState   = {};  // "YYYY-MM-DD_0" / "YYYY-MM-DD_1" → bool
+let lessonState    = {};  // "YYYY-MM-DD_0" / "YYYY-MM-DD_1" → string
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const p = JSON.parse(raw);
+      paceMultiplier = p.pace    || 1.5;
+      checkedState   = p.checked || {};
+      lessonState    = p.lessons || {};
+    }
+  } catch(e) {}
+  document.getElementById('pace-slider').value = paceMultiplier;
+  document.getElementById('pace-display').textContent = paceMultiplier.toFixed(1) + '×';
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    pace: paceMultiplier,
+    checked: checkedState,
+    lessons: lessonState
+  }));
+}
+
+function resetAll() {
+  if (!confirm('Reset all checkboxes and lesson fields?')) return;
+  checkedState = {};
+  lessonState  = {};
+  saveState();
+  rebuildCalendar();
+  updateAll();
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────
+function dateKey(d) {
+  return d.getFullYear() + '-' +
+    String(d.getMonth()+1).padStart(2,'0') + '-' +
+    String(d.getDate()).padStart(2,'0');
+}
+function isToday(d) {
+  const t = new Date();
+  return d.getFullYear()===t.getFullYear() && d.getMonth()===t.getMonth() && d.getDate()===t.getDate();
+}
+function isPast(d) {
+  const t = new Date(); t.setHours(0,0,0,0);
+  const dc = new Date(d); dc.setHours(0,0,0,0);
+  return dc < t;
+}
+function monthName(d) {
+  return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+function fmtH(h) {
+  const hrs = Math.floor(h), min = Math.round((h - hrs) * 60);
+  return min > 0 ? `${hrs}h ${min}m` : `${hrs}h`;
+}
+function getTotalBlocksNeeded() {
+  return Math.ceil((ESTIMATED_HOURS * paceMultiplier) / 2);
+}
+function getCheckedCount() {
+  return Object.values(checkedState).filter(Boolean).length;
+}
+
+// ── Lesson tables ──────────────────────────────────────────────────────
+function updateLessonTables() {
+  const completed = [];
+  const remaining = [];
+
+  ALL_DATES.forEach(date => {
+    const dk = dateKey(date);
+    for (let r = 0; r < ROWS_PER_DAY; r++) {
+      const key    = dk + '_' + r;
+      const lesson = (lessonState[key] || '').trim();
+      if (!lesson) continue;
+      if (checkedState[key]) {
+        completed.push(lesson);
+      } else {
+        remaining.push(lesson);
+      }
+    }
+  });
+
+  renderChips('completed-chips', completed, 'done');
+  renderChips('remaining-chips', remaining, 'todo');
+  document.getElementById('completed-count').textContent = completed.length;
+  document.getElementById('remaining-count').textContent = remaining.length;
+}
+
+function renderChips(containerId, items, chipClass) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  if (items.length === 0) {
+    const empty = document.createElement('span');
+    empty.className = 'chip-empty';
+    empty.textContent = chipClass === 'done' ? 'No lessons checked yet' : 'No lessons entered yet';
+    el.appendChild(empty);
+    return;
+  }
+  items.forEach(text => {
+    const chip = document.createElement('span');
+    chip.className = 'chip ' + chipClass;
+    chip.textContent = text;
+    el.appendChild(chip);
+  });
+}
+
+// ── Stats ──────────────────────────────────────────────────────────────
+function updateStats() {
+  const totalBlocks = getTotalBlocksNeeded();
+  const done        = getCheckedCount();
+  const pct         = Math.min(100, Math.round((done / totalBlocks) * 100));
+  const actualHours = ESTIMATED_HOURS * paceMultiplier;
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const endD  = new Date(END_DATE); endD.setHours(0,0,0,0);
+  const daysLeft = Math.max(0, Math.round((endD - today) / 86400000) + 1);
+
+  document.getElementById('stat-actual-hours').textContent = fmtH(actualHours);
+  document.getElementById('stat-pace-note').textContent    = `at ${paceMultiplier.toFixed(1)}×`;
+  document.getElementById('stat-total-blocks').textContent = totalBlocks;
+  document.getElementById('stat-done-blocks').textContent  = done;
+  document.getElementById('stat-days-left').textContent    = daysLeft;
+  document.getElementById('progress-pct').textContent      = pct + '%';
+  document.getElementById('progress-fill').style.width     = pct + '%';
+  document.getElementById('done-banner').style.display     = (done >= totalBlocks) ? 'block' : 'none';
+}
+
+function updateAll() {
+  updateLessonTables();
+  updateStats();
+}
+
+// ── Calendar ───────────────────────────────────────────────────────────
+function rebuildCalendar() {
+  const container = document.getElementById('calendar-container');
+  container.innerHTML = '';
+
+  let currentMonth = null;
+  let grid = null;
+
+  ALL_DATES.forEach(date => {
+    const mKey = date.getFullYear() + '-' + date.getMonth();
+
+    if (mKey !== currentMonth) {
+      currentMonth = mKey;
+
+      const mLabel = document.createElement('div');
+      mLabel.className = 'month-label';
+      mLabel.textContent = monthName(date);
+      container.appendChild(mLabel);
+
+      grid = document.createElement('div');
+      grid.className = 'calendar-grid';
+      container.appendChild(grid);
+
+      ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => {
+        const h = document.createElement('div');
+        h.className = 'dow-header';
+        h.textContent = d;
+        grid.appendChild(h);
+      });
+
+      // blank cells before first date in range
+      const dow = date.getDay();
+      for (let i = 0; i < dow; i++) {
+        const e = document.createElement('div');
+        e.className = 'day-cell empty';
+        grid.appendChild(e);
+      }
+    }
+
+    const dk   = dateKey(date);
+    const cell = document.createElement('div');
+    cell.className = 'day-cell';
+    cell.id = 'day-' + dk;
+    if (isToday(date)) cell.classList.add('today');
+
+    // Date number
+    const dayNum = document.createElement('div');
+    dayNum.className = 'day-num';
+    const numSpan = document.createElement('span');
+    numSpan.textContent = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    dayNum.appendChild(numSpan);
+    if (isToday(date)) {
+      const badge = document.createElement('span');
+      badge.className = 'today-badge';
+      badge.textContent = 'TODAY';
+      dayNum.appendChild(badge);
+    }
+    cell.appendChild(dayNum);
+
+    // 2 lesson rows
+    for (let r = 0; r < ROWS_PER_DAY; r++) {
+      const key = dk + '_' + r;
+
+      const row = document.createElement('div');
+      row.className = 'lesson-row';
+
+      // Checkbox
+      const cb = document.createElement('input');
+      cb.type    = 'checkbox';
+      cb.id      = 'cb-' + key;
+      cb.checked = !!checkedState[key];
+
+      // Label
+      const lbl = document.createElement('label');
+      lbl.className = 'row-label';
+      lbl.htmlFor   = 'cb-' + key;
+      lbl.textContent = 'Lesson';
+
+      // Number field
+      const field = document.createElement('input');
+      field.type        = 'text';
+      field.className   = 'lesson-num-field' + (checkedState[key] ? ' is-done' : '');
+      field.id          = 'field-' + key;
+      field.placeholder = '#';
+      field.value       = lessonState[key] || '';
+      field.maxLength   = 10;
+
+      // Events
+      cb.addEventListener('change', () => {
+        checkedState[key] = cb.checked;
+        field.classList.toggle('is-done', cb.checked);
+        saveState();
+        updateAll();
+        updateCellState(date);
+      });
+
+      field.addEventListener('input', () => {
+        lessonState[key] = field.value;
+        saveState();
+        updateAll();
+      });
+
+      field.addEventListener('click', e => e.stopPropagation());
+
+      row.appendChild(cb);
+      row.appendChild(lbl);
+      row.appendChild(field);
+      cell.appendChild(row);
+    }
+
+    grid.appendChild(cell);
+    updateCellState(date);
+  });
+}
+
+function updateCellState(date) {
+  const dk   = dateKey(date);
+  const cell = document.getElementById('day-' + dk);
+  if (!cell) return;
+
+  let checked = 0;
+  for (let r = 0; r < ROWS_PER_DAY; r++) {
+    if (checkedState[dk + '_' + r]) checked++;
+  }
+
+  cell.classList.remove('complete','overdue','past-complete');
+
+  if (checked >= ROWS_PER_DAY) {
+    cell.classList.add(isPast(date) && !isToday(date) ? 'past-complete' : 'complete');
+  } else if (checked > 0) {
+    // partially done — neutral, no red
+  } else if (isPast(date) && !isToday(date)) {
+    cell.classList.add('overdue');
+  }
+}
+
+// ── Pace slider ────────────────────────────────────────────────────────
+document.getElementById('pace-slider').addEventListener('input', function() {
+  paceMultiplier = parseFloat(this.value);
+  document.getElementById('pace-display').textContent = paceMultiplier.toFixed(1) + '×';
+  saveState();
+  rebuildCalendar();
+  updateAll();
+});
+
+// ── Init ───────────────────────────────────────────────────────────────
+loadState();
+rebuildCalendar();
+updateAll();
+</script>
+</body>
+</html>
